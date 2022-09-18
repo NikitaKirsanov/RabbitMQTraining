@@ -6,14 +6,21 @@ import(
 )
 
 func main(){
-
-	conn, err := amqp.Dial("amqp://guest:guest@yourhost:5672/")
+	/*
+	* Creation of connection to RabbitMQ instance
+	* Создаем подключение к инстансу RabbitMQ
+	*/
+	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
 	if err != nil{
 		fmt.Println(fmt.Sprintf("Connection to RabbitMQ failed: %v", err))
 		panic(err)
 	}
 	defer conn.Close()
 
+	/*
+	* Declaring amqp channel
+	* Объявляем amqp канал
+	*/
 	ch, err := conn.Channel()
 	if err != nil{
 		fmt.Println(fmt.Sprintf("Declaring channel failed: %v", err))

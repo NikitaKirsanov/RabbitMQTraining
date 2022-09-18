@@ -3,29 +3,51 @@ package main
 import (
 	"fmt"
 	"github.com/streadway/amqp"
+	"github.com/gorilla/mux"
+	"log"
+	"net/http"
+	"io/ioutil"
 )
+
 
 func main(){
 	/*
-	* Creation of connection to RabbitMQ instance
+	* Creating new GorillaMux router for REST API
+	* Создаем новый роутер GorillaMux для REST API
 	*/
-	conn, err := amqp.Dial("amqp://guest:guest@yourhost:5672/")
+	r := mux.NewRouter()
+	r.HandleFunc("/msg", Publish).Methods("POST")
+	log.Fatal(http.ListenAndServe(":8000", r))
+	
+}
+
+func Publish(resp http.ResponseWriter,r *http.Request) {
+	/*
+	* Creation of connection to RabbitMQ instance
+	* Создаем подключение к инстансу RabbitMQ
+	*/
+	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
 	if err != nil{
 		fmt.Println(fmt.Sprintf("Connection to RabbitMQ failed: %v", err))
 		panic(err)
 	}
 	defer conn.Close()
 
-
 	/*
-	* Creation of Channel to interract with queue
-	*/ 
+	* Declaring amqp channel to interract with queue
+	* Объявляем amqp канал для взаимодействия с очередью
+	*/
 	ch, err := conn.Channel()
 	if err != nil{
-		fmt.Println(fmt.Sprintf("Creation of channel err: %v", err))
+		fmt.Println(fmt.Sprintf("Declaring channel failed: %v", err))
 		panic(err)
 	}
-	defer ch.Close()
+	defer ch.Close()	
+
+	msg, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		fmt.Println(fmt.Sprintf("Message reading  failed: %v", err))
+	}
 
 	q, err := ch.QueueDeclare(
 		"TestingQueue",
@@ -49,11 +71,12 @@ func main(){
 		false,
 		amqp.Publishing{
 			ContentType: "text/plain",
-			Body: []byte("Here would be messages from the Client"),
+			Body: []byte(msg),
 		},
 	)
 	if err != nil{
 		fmt.Println(fmt.Sprintf("Sending message to queue err: %v", err))
 		panic(err)
 	}
+
 }
